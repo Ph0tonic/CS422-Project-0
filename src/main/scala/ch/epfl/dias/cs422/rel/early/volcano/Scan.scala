@@ -46,22 +46,37 @@ class Scan protected (
           * For this project, it's safe to assume scannable will always
           * be a [[RowStore]].
           */
-        ???
+        rowStore.getRow(rowId)
+    }
+  }
+
+  protected var index = 0
+  protected var count: Long = 0L
+
+  /**
+    * @inheritdoc
+    */
+  override def open(): Unit = {
+    index = 0
+    count = scannable.getRowCount
+  }
+
+  /**
+    * @inheritdoc
+    */
+  override def next(): Option[Tuple] = {
+    if (index > count) {
+      NilTuple
+    } else {
+      val next_tuple = getRow(index)
+      index = index + 1
+      Some(next_tuple)
     }
   }
 
   /**
     * @inheritdoc
     */
-  override def open(): Unit = ???
+  override def close(): Unit = {}
 
-  /**
-    * @inheritdoc
-    */
-  override def next(): Option[Tuple] = ???
-
-  /**
-    * @inheritdoc
-    */
-  override def close(): Unit = ???
 }
