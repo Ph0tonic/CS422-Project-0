@@ -35,38 +35,23 @@ class Sort protected (
       next = input.next()
     }
 
-//    val sortFunction = collation.getFieldCollations()
-//    sortFunction.stream().map(x => (t1:Tuple,t2:Tuple) => x.getFieldIndex
+    val ordering: Ordering[Tuple] = collation.getFieldCollations
+      .toArray(
+        Array.ofDim[RelFieldCollation](collation.getFieldCollations.size)
+      )
+      .map(c => {
+        val order = Ordering.by[Tuple, Comparable[Elem]](
+          _(c.getFieldIndex).asInstanceOf[Comparable[Elem]]
+        )
+        if (c.direction.isDescending) {
+          order.reverse
+        } else {
+          order
+        }
+      })
+      .reduce(_.orElse(_))
 
-//    sorted = sorted.sortBy(collation.getFieldCollations.get(0).get)
-
-//    collation.getFieldCollations
-//    offset.get
-//    sorted.sortWith() //TODO implement the sort operation
-//    sorted.sortBy(t => t.sortBy(collation.getFieldCollations)
-
-    collation.getFieldCollations.stream().map(c => {
-      val comparer = if (c.getDirection.isDescending) {
-        val a:Tuple = IndexedSeq.empty[Elem]
-        val b:Tuple = IndexedSeq.empty
-        val d:Elem = a(0)
-        val e = d < d
-
-        RelFieldCollation.compare(a(c.getFieldIndex),a(c.getFieldIndex), 0)
-        val res = c.compare(a,b,0)
-
-        val comp = (Tuple,Tuple):Boolean = (a,b) => a(index) < b(index)
-      } else {
-        (a:Tuple,b:Tuple) => a(index) > b(index)
-      }
-      val index = c.getFieldIndex
-      c.getFieldIndex
-    })
-    collation.getFieldCollations.forEach(c => {
-      c.getDirection
-      c.getFieldIndex
-    })
-
+    sorted = sorted.sorted(ordering)
     sortedIterator = sorted.iterator.drop(offset.getOrElse(0))
   }
 

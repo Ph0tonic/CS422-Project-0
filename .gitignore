@@ -1,5 +1,5 @@
 /.bsp/sbt.json
-/.idea/libraries
+.idea/*
 /project/project/target
 /project/target
 /target

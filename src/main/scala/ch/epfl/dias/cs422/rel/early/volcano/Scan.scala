@@ -65,7 +65,7 @@ class Scan protected (
     * @inheritdoc
     */
   override def next(): Option[Tuple] = {
-    if (index > count) {
+    if (index >= count) {
       NilTuple
     } else {
       val next_tuple = getRow(index)
