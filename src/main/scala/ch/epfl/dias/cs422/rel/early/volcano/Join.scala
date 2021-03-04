@@ -1,7 +1,7 @@
 package ch.epfl.dias.cs422.rel.early.volcano
 
 import ch.epfl.dias.cs422.helpers.builder.skeleton
-import ch.epfl.dias.cs422.helpers.rel.RelOperator.{NilTuple, Tuple}
+import ch.epfl.dias.cs422.helpers.rel.RelOperator.{Elem, NilTuple, Tuple}
 import org.apache.calcite.rex.RexNode
 
 /**
@@ -52,8 +52,8 @@ class Join(
           }
         }
         case right #:: tail if keys.forall {
-              case (i, j) => left(i) == right(j)
-            } => (right:++left) #:: join(left, leftIterator, tail)
+              case (i, j) => left(i).asInstanceOf[Comparable[Elem]].compareTo(right(j).asInstanceOf[Comparable[Elem]]) == 0
+            } => (left:++right) #:: join(left, leftIterator, tail)
         case _ #:: tail => join(left, leftIterator, tail)
       }
 

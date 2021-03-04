@@ -27,16 +27,17 @@ class Aggregate protected (
     * @inheritdoc
     */
   override def open(): Unit = {
-    val keyIndices = groupSet.toArray
-
     input.open()
     var next = input.next()
     if (next == NilTuple && groupSet.isEmpty) {
+      // return aggEmptyValue for each aggregate.
       val result: Tuple = aggCalls
         .map(aggEmptyValue)
         .foldLeft(IndexedSeq.empty[Elem])((a, b) => a :+ b)
       aggregated = Array(result)
     } else {
+      // Group based on the key produced by the indices in groupSet
+      val keyIndices = groupSet.toArray
       var aggregates: Map[Tuple, Array[Tuple]] = Map.empty[Tuple, Array[Tuple]]
       while (next != NilTuple) {
         val tuple: Tuple = next.get
@@ -49,10 +50,16 @@ class Aggregate protected (
         next = input.next()
       }
 
+
+      // Conclude a group as soon as you have a single value.
+
+      // For each group and each aggregate call "agg":
       aggregated = aggCalls
         .map(agg => {
           val tuples: IndexedSeq[Tuple] = aggregates.toIndexedSeq.map {
             case (_, tuples) =>
+              // find the input of the aggregate by calling agg.getArgument.
+              // reduce the values in the group by picking pairs and applying the agg.reduce function.
               IndexedSeq(
                 tuples
                   .map(tuple => agg.getArgument(tuple))
@@ -72,7 +79,9 @@ class Aggregate protected (
     */
   override def next(): Option[Tuple] =
     if (aggregatedIterator.hasNext) {
-      Some(aggregatedIterator.next())
+      val res = aggregatedIterator.next()
+      println(res)
+      Some(res)
     } else {
       NilTuple
     }
