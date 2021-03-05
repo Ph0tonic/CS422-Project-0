@@ -60,7 +60,9 @@ class Sort protected (
     */
   override def next(): Option[Tuple] =
     if (counter != 0 && sortedIterator.hasNext) {
-      counter = counter - 1
+      if(counter > 0) {
+        counter = counter - 1
+      }
       Some(sortedIterator.next())
     } else {
       NilTuple

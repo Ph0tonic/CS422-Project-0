@@ -32,7 +32,9 @@ class Join(
     ): LazyList[Tuple] =
       it.next() match {
         case Some(tuple) => tuple #:: next(it)
-        case NilTuple    => LazyList.empty
+        case NilTuple =>
+          it.close()
+          LazyList.empty
       }
 
     lazyRight = next(right)
@@ -45,15 +47,20 @@ class Join(
         rightIterator: LazyList[Tuple]
     ): LazyList[Tuple] =
       rightIterator match {
-        case LazyList() => {
+        case LazyList() =>
           leftIterator match {
             case LazyList() => LazyList.empty
             case l #:: tail => join(l, tail, lazyRight)
           }
-        }
         case right #:: tail if keys.forall {
-              case (i, j) => left(i).asInstanceOf[Comparable[Elem]].compareTo(right(j).asInstanceOf[Comparable[Elem]]) == 0
-            } => (left:++right) #:: join(left, leftIterator, tail)
+              case (leftIndex, rightIndex) =>
+                left(leftIndex)
+                  .asInstanceOf[Comparable[Elem]]
+                  .compareTo(
+                    right(rightIndex).asInstanceOf[Comparable[Elem]]
+                  ) == 0
+            } =>
+          left.:++(right) #:: join(left, leftIterator, tail)
         case _ #:: tail => join(left, leftIterator, tail)
       }
 

@@ -41,15 +41,13 @@ class Aggregate protected (
       var aggregates: Map[Tuple, Array[Tuple]] = Map.empty[Tuple, Array[Tuple]]
       while (next != NilTuple) {
         val tuple: Tuple = next.get
-        val key: Tuple =
-          keyIndices.map(i => tuple(i))
+        val key: Tuple = keyIndices.map(i => tuple(i))
         aggregates = aggregates.get(key) match {
           case Some(arr: Array[Tuple]) => aggregates + (key -> arr.:+(tuple))
           case _                       => aggregates + (key -> Array(tuple))
         }
         next = input.next()
       }
-
 
       // Conclude a group as soon as you have a single value.
 
@@ -68,7 +66,9 @@ class Aggregate protected (
           }
           tuples
         })
-        .reduce((a, b) => a.zip(b).map { case (a, b) => a :++ b })
+        .reduce((a, b) => a.zip(b).map { case (c, d) => c :++ d })
+        .zip(aggregates.toIndexedSeq.map { case (key, _) => key })
+        .map { case (t, key) => key ++ t }
         .toArray
     }
     aggregatedIterator = aggregated.iterator
@@ -89,7 +89,5 @@ class Aggregate protected (
   /**
     * @inheritdoc
     */
-  override def close(): Unit = {
-    input.close()
-  }
+  override def close(): Unit = input.close()
 }
