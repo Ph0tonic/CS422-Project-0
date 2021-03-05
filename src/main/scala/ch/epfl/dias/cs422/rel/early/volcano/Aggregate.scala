@@ -49,27 +49,12 @@ class Aggregate protected (
         next = input.next()
       }
 
-      // Conclude a group as soon as you have a single value.
-
-      // For each group and each aggregate call "agg":
-      aggregated = aggCalls
-        .map(agg => {
-          val tuples: IndexedSeq[Tuple] = aggregates.toIndexedSeq.map {
-            case (_, tuples) =>
-              // find the input of the aggregate by calling agg.getArgument.
-              // reduce the values in the group by picking pairs and applying the agg.reduce function.
-              IndexedSeq(
-                tuples
-                  .map(tuple => agg.getArgument(tuple))
-                  .reduce((a, b) => aggReduce(a, b, agg))
-              )
-          }
-          tuples
-        })
-        .reduce((a, b) => a.zip(b).map { case (c, d) => c :++ d })
-        .zip(aggregates.toIndexedSeq.map { case (key, _) => key })
-        .map { case (t, key) => key ++ t }
-        .toArray
+      aggregated = aggregates.toIndexedSeq.map {
+        case (key, tuples) =>
+          key ++ aggCalls.map(agg =>
+            tuples.map(t => agg.getArgument(t)).reduce(aggReduce(_, _, agg))
+          )
+      }.toArray
     }
     aggregatedIterator = aggregated.iterator
   }
