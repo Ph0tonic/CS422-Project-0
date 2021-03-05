@@ -20,8 +20,7 @@ class Aggregate protected (
     ](input, groupSet, aggCalls)
     with ch.epfl.dias.cs422.helpers.rel.early.volcano.Operator {
 
-  private var aggregated = Array.empty[Tuple]
-  protected var aggregatedIterator: Iterator[Tuple] = Iterator()
+  protected var lazyAggregated: LazyList[Tuple] = LazyList.empty[Tuple]
 
   /**
     * @inheritdoc
@@ -34,8 +33,9 @@ class Aggregate protected (
       val result: Tuple = aggCalls
         .map(aggEmptyValue)
         .foldLeft(IndexedSeq.empty[Elem])((a, b) => a :+ b)
-      aggregated = Array(result)
+      lazyAggregated = result #:: LazyList.empty[Tuple]
     } else {
+
       // Group based on the key produced by the indices in groupSet
       val keyIndices = groupSet.toArray
       var aggregates: Map[Tuple, Array[Tuple]] = Map.empty[Tuple, Array[Tuple]]
@@ -49,25 +49,29 @@ class Aggregate protected (
         next = input.next()
       }
 
-      aggregated = aggregates.toIndexedSeq.map {
-        case (key, tuples) =>
-          key ++ aggCalls.map(agg =>
-            tuples.map(t => agg.getArgument(t)).reduce(aggReduce(_, _, agg))
-          )
-      }.toArray
+      def aggregate(tuples: List[(Tuple, Array[Tuple])]): LazyList[Tuple] =
+        tuples match {
+          case (key, tuples) :: tail =>
+            key.++(
+              aggCalls.map(agg =>
+                tuples.map(t => agg.getArgument(t)).reduce(aggReduce(_, _, agg))
+              )
+            ) #:: aggregate(tail)
+          case _ => LazyList.empty[Tuple]
+        }
+      lazyAggregated = aggregate(aggregates.toList)
     }
-    aggregatedIterator = aggregated.iterator
   }
 
   /**
     * @inheritdoc
     */
   override def next(): Option[Tuple] =
-    if (aggregatedIterator.hasNext) {
-      val res = aggregatedIterator.next()
-      Some(res)
-    } else {
-      NilTuple
+    lazyAggregated match {
+      case LazyList() => NilTuple
+      case tuple #:: tail =>
+        lazyAggregated = tail
+        Some(tuple)
     }
 
   /**
