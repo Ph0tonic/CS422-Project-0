@@ -65,7 +65,6 @@ class Aggregate protected (
   override def next(): Option[Tuple] =
     if (aggregatedIterator.hasNext) {
       val res = aggregatedIterator.next()
-      println(res)
       Some(res)
     } else {
       NilTuple
