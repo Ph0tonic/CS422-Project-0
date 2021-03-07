@@ -40,24 +40,25 @@ class Aggregate protected (
     } else {
       // Group based on the key produced by the indices in groupSet
       val keyIndices = groupSet.toArray
-      var aggregates = Map.empty[Tuple, Vector[Tuple]]
+      var aggregates = Map.empty[Tuple, Tuple]
       while (next != NilTuple) {
         val tuple: Tuple = next.get
         val key: Tuple = keyIndices.map(i => tuple(i))
         aggregates = aggregates.get(key) match {
-          case Some(arr: Vector[Tuple]) => aggregates + (key -> (arr :+ tuple))
-          case _                        => aggregates + (key -> Vector(tuple))
+          case Some(arr: Tuple) => {
+            aggregates + (key -> aggCalls.zip(arr).map {
+              case (agg, t) =>
+                aggReduce(t, agg.getArgument(tuple), agg)
+            })
+          }
+          case _ =>
+            aggregates + (key -> aggCalls.map(agg => agg.getArgument(tuple)))
         }
         next = input.next()
       }
 
       aggregatedIterator = aggregates.toArray.map {
-        case (key, tuples) =>
-          key.++(
-            aggCalls.map(agg =>
-              tuples.map(t => agg.getArgument(t)).reduce(aggReduce(_, _, agg))
-            )
-          )
+        case (key, tuple) => key.++(tuple)
       }.iterator
     }
   }
