@@ -12,13 +12,13 @@ import org.apache.calcite.util.ImmutableBitSet
   * @see [[ch.epfl.dias.cs422.helpers.rex.AggregateCall]]
   */
 class Aggregate protected (
-                            input: ch.epfl.dias.cs422.helpers.rel.early.volcano.Operator,
-                            groupSet: ImmutableBitSet,
-                            aggCalls: IndexedSeq[AggregateCall]
-                          ) extends skeleton.Aggregate[
-  ch.epfl.dias.cs422.helpers.rel.early.volcano.Operator
-](input, groupSet, aggCalls)
-  with ch.epfl.dias.cs422.helpers.rel.early.volcano.Operator {
+    input: ch.epfl.dias.cs422.helpers.rel.early.volcano.Operator,
+    groupSet: ImmutableBitSet,
+    aggCalls: IndexedSeq[AggregateCall]
+) extends skeleton.Aggregate[
+      ch.epfl.dias.cs422.helpers.rel.early.volcano.Operator
+    ](input, groupSet, aggCalls)
+    with ch.epfl.dias.cs422.helpers.rel.early.volcano.Operator {
 
   protected var aggregated = List.empty[(Tuple, Vector[Tuple])]
 
@@ -79,3 +79,4 @@ class Aggregate protected (
     * @inheritdoc
     */
   override def close(): Unit = input.close()
+}
