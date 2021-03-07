@@ -10,17 +10,17 @@ import org.apache.calcite.rel.{RelCollation, RelFieldCollation}
   * @see [[ch.epfl.dias.cs422.helpers.rel.early.volcano.Operator]]
   */
 class Sort protected (
-    input: ch.epfl.dias.cs422.helpers.rel.early.volcano.Operator,
-    collation: RelCollation,
-    offset: Option[Int],
-    fetch: Option[Int]
-) extends skeleton.Sort[
-      ch.epfl.dias.cs422.helpers.rel.early.volcano.Operator
-    ](input, collation, offset, fetch)
-    with ch.epfl.dias.cs422.helpers.rel.early.volcano.Operator {
+                       input: ch.epfl.dias.cs422.helpers.rel.early.volcano.Operator,
+                       collation: RelCollation,
+                       offset: Option[Int],
+                       fetch: Option[Int]
+                     ) extends skeleton.Sort[
+  ch.epfl.dias.cs422.helpers.rel.early.volcano.Operator
+](input, collation, offset, fetch)
+  with ch.epfl.dias.cs422.helpers.rel.early.volcano.Operator {
 
   private var counter = 0
-  private var sorted = Vector[Tuple]()
+  private var sorted = Array.empty[Tuple]
   protected var sortedIterator: Iterator[Tuple] = Iterator()
 
   /**
@@ -73,6 +73,6 @@ class Sort protected (
     */
   override def close(): Unit = {
     input.close()
-    sorted = Vector.empty[Tuple]
+    sorted = Array.empty[Tuple]
   }
 }

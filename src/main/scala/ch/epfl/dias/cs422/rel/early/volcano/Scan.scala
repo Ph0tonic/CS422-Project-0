@@ -11,14 +11,14 @@ import org.apache.calcite.plan.{RelOptCluster, RelOptTable, RelTraitSet}
   * @see [[ch.epfl.dias.cs422.helpers.rel.early.volcano.Operator]]
   */
 class Scan protected (
-    cluster: RelOptCluster,
-    traitSet: RelTraitSet,
-    table: RelOptTable,
-    tableToStore: ScannableTable => Store
-) extends skeleton.Scan[
-      ch.epfl.dias.cs422.helpers.rel.early.volcano.Operator
-    ](cluster, traitSet, table)
-    with ch.epfl.dias.cs422.helpers.rel.early.volcano.Operator {
+                       cluster: RelOptCluster,
+                       traitSet: RelTraitSet,
+                       table: RelOptTable,
+                       tableToStore: ScannableTable => Store
+                     ) extends skeleton.Scan[
+  ch.epfl.dias.cs422.helpers.rel.early.volcano.Operator
+](cluster, traitSet, table)
+  with ch.epfl.dias.cs422.helpers.rel.early.volcano.Operator {
 
   /**
     * A [[Store]] is an in-memory storage the data.
