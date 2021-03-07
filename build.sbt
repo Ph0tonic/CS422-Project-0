@@ -20,7 +20,7 @@ initialize := {
 // https://mvnrepository.com/artifact/org.apache.calcite/calcite-core
 // Include Calcite Core
 libraryDependencies += "org.apache.calcite" % "calcite-core" % calciteVersion
-libraryDependencies += "org.scala-lang.modules" %% "scala-parallel-collections" % "1.0.1"
+
 libraryDependencies += "ch.epfl.dias.cs422" %% "base" % skeletonVersion
 libraryDependencies += "ch.epfl.dias.cs422" %% "base" % skeletonVersion % Test classifier "tests"
 

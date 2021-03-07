@@ -12,13 +12,13 @@ import org.apache.calcite.rex.RexNode
   * @see [[ch.epfl.dias.cs422.helpers.builder.skeleton.Join.getRightKeys]]
   */
 class Join(
-    left: ch.epfl.dias.cs422.helpers.rel.early.volcano.Operator,
-    right: ch.epfl.dias.cs422.helpers.rel.early.volcano.Operator,
-    condition: RexNode
-) extends skeleton.Join[
-      ch.epfl.dias.cs422.helpers.rel.early.volcano.Operator
-    ](left, right, condition)
-    with ch.epfl.dias.cs422.helpers.rel.early.volcano.Operator {
+            left: ch.epfl.dias.cs422.helpers.rel.early.volcano.Operator,
+            right: ch.epfl.dias.cs422.helpers.rel.early.volcano.Operator,
+            condition: RexNode
+          ) extends skeleton.Join[
+  ch.epfl.dias.cs422.helpers.rel.early.volcano.Operator
+](left, right, condition)
+  with ch.epfl.dias.cs422.helpers.rel.early.volcano.Operator {
 
   private var lazyRight = LazyList.empty[Tuple]
   private var lazyJoined = LazyList.empty[Tuple]
@@ -31,8 +31,8 @@ class Join(
     right.open()
 
     def next(
-        it: ch.epfl.dias.cs422.helpers.rel.early.volcano.Operator
-    ): LazyList[Tuple] =
+              it: ch.epfl.dias.cs422.helpers.rel.early.volcano.Operator
+            ): LazyList[Tuple] =
       it.next() match {
         case Some(tuple) => tuple #:: next(it)
         case NilTuple =>
@@ -44,9 +44,9 @@ class Join(
     val keys = getLeftKeys.zip(getRightKeys)
 
     def join(
-        previousLeft: Tuple,
-        rightIterator: LazyList[Tuple]
-    ): LazyList[Tuple] =
+              previousLeft: Tuple,
+              rightIterator: LazyList[Tuple]
+            ): LazyList[Tuple] =
       rightIterator match {
         case LazyList() =>
           left.next() match {
@@ -54,13 +54,13 @@ class Join(
             case Some(l)  => join(l, lazyRight)
           }
         case right #:: tail if keys.forall {
-              case (leftIndex, rightIndex) =>
-                previousLeft(leftIndex)
-                  .asInstanceOf[Comparable[Elem]]
-                  .compareTo(
-                    right(rightIndex).asInstanceOf[Comparable[Elem]]
-                  ) == 0
-            } =>
+          case (leftIndex, rightIndex) =>
+            previousLeft(leftIndex)
+              .asInstanceOf[Comparable[Elem]]
+              .compareTo(
+                right(rightIndex).asInstanceOf[Comparable[Elem]]
+              ) == 0
+        } =>
           previousLeft.:++(right) #:: join(previousLeft, tail)
         case _ #:: tail => join(previousLeft, tail)
       }
