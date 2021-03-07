@@ -20,6 +20,9 @@ class Join(
     ](left, right, condition)
     with ch.epfl.dias.cs422.helpers.rel.early.volcano.Operator {
 
+  private var lazyRight = LazyList.empty[Tuple]
+  private var lazyJoined = LazyList.empty[Tuple]
+
   /**
     * @inheritdoc
     */
@@ -38,41 +41,35 @@ class Join(
       }
 
     lazyRight = next(right)
-    lazyLeft = next(left)
     val keys = getLeftKeys.zip(getRightKeys)
 
     def join(
-        left: Tuple,
-        leftIterator: LazyList[Tuple],
+        previousLeft: Tuple,
         rightIterator: LazyList[Tuple]
     ): LazyList[Tuple] =
       rightIterator match {
         case LazyList() =>
-          leftIterator match {
-            case LazyList() => LazyList.empty
-            case l #:: tail => join(l, tail, lazyRight)
+          left.next() match {
+            case NilTuple => LazyList.empty
+            case Some(l)  => join(l, lazyRight)
           }
         case right #:: tail if keys.forall {
               case (leftIndex, rightIndex) =>
-                left(leftIndex)
+                previousLeft(leftIndex)
                   .asInstanceOf[Comparable[Elem]]
                   .compareTo(
                     right(rightIndex).asInstanceOf[Comparable[Elem]]
                   ) == 0
             } =>
-          left.:++(right) #:: join(left, leftIterator, tail)
-        case _ #:: tail => join(left, leftIterator, tail)
+          previousLeft.:++(right) #:: join(previousLeft, tail)
+        case _ #:: tail => join(previousLeft, tail)
       }
 
-    lazyJoined = lazyLeft match {
-      case LazyList() => LazyList.empty
-      case l #:: tail => join(l, tail, lazyRight)
+    lazyJoined = left.next() match {
+      case NilTuple => LazyList.empty
+      case Some(l)  => join(l, lazyRight)
     }
   }
-
-  private var lazyRight = LazyList.empty[Tuple]
-  private var lazyLeft = LazyList.empty[Tuple]
-  private var lazyJoined = LazyList.empty[Tuple]
 
   /**
     * @inheritdoc

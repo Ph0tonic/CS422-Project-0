@@ -20,7 +20,7 @@ class Sort protected (
     with ch.epfl.dias.cs422.helpers.rel.early.volcano.Operator {
 
   private var counter = 0
-  private var sorted = List[Tuple]()
+  private var sorted = Vector[Tuple]()
   protected var sortedIterator: Iterator[Tuple] = Iterator()
 
   /**
@@ -31,7 +31,7 @@ class Sort protected (
     counter = fetch.getOrElse(-1)
     var next = input.next()
     while (next != NilTuple) {
-      sorted = next.get :: sorted
+      sorted = sorted :+ next.get
       next = input.next()
     }
 
@@ -73,6 +73,6 @@ class Sort protected (
     */
   override def close(): Unit = {
     input.close()
-    sorted = Nil
+    sorted = Vector.empty[Tuple]
   }
 }

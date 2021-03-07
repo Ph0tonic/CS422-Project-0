@@ -20,7 +20,7 @@ class Aggregate protected (
     ](input, groupSet, aggCalls)
     with ch.epfl.dias.cs422.helpers.rel.early.volcano.Operator {
 
-  protected var lazyAggregated: LazyList[Tuple] = LazyList.empty[Tuple]
+  protected var aggregated = List.empty[(Tuple, Vector[Tuple])]
 
   /**
     * @inheritdoc
@@ -30,49 +30,50 @@ class Aggregate protected (
     var next = input.next()
     if (next == NilTuple && groupSet.isEmpty) {
       // return aggEmptyValue for each aggregate.
-      val result: Tuple = aggCalls
-        .map(aggEmptyValue)
-        .foldLeft(IndexedSeq.empty[Elem])((a, b) => a :+ b)
-      lazyAggregated = result #:: LazyList.empty[Tuple]
-    } else {
+      aggregated = List(
+        (IndexedSeq.empty[Elem] -> Vector(
+          aggCalls
+            .map(aggEmptyValue)
+            .foldLeft(IndexedSeq.empty[Elem])((a, b) => a :+ b)
+            .asInstanceOf[Tuple]
+        ))
+      )
 
+    } else {
       // Group based on the key produced by the indices in groupSet
       val keyIndices = groupSet.toArray
-      var aggregates: Map[Tuple, Array[Tuple]] = Map.empty[Tuple, Array[Tuple]]
+      var aggregates = Map.empty[Tuple, Vector[Tuple]]
       while (next != NilTuple) {
         val tuple: Tuple = next.get
         val key: Tuple = keyIndices.map(i => tuple(i))
         aggregates = aggregates.get(key) match {
-          case Some(arr: Array[Tuple]) => aggregates + (key -> arr.:+(tuple))
-          case _                       => aggregates + (key -> Array(tuple))
+          case Some(arr: Vector[Tuple]) => aggregates + (key -> (arr :+ tuple))
+          case _                        => aggregates + (key -> Vector(tuple))
         }
         next = input.next()
       }
 
-      def aggregate(tuples: List[(Tuple, Array[Tuple])]): LazyList[Tuple] =
-        tuples match {
-          case (key, tuples) :: tail =>
-            key.++(
-              aggCalls.map(agg =>
-                tuples.map(t => agg.getArgument(t)).reduce(aggReduce(_, _, agg))
-              )
-            ) #:: aggregate(tail)
-          case _ => LazyList.empty[Tuple]
-        }
-      lazyAggregated = aggregate(aggregates.toList)
+      aggregated = aggregates.toList
     }
   }
 
   /**
     * @inheritdoc
     */
-  override def next(): Option[Tuple] =
-    lazyAggregated match {
-      case LazyList() => NilTuple
-      case tuple #:: tail =>
-        lazyAggregated = tail
-        Some(tuple)
+  override def next(): Option[Tuple] = {
+    aggregated match {
+      case (key, tuples) :: tail =>
+        aggregated = tail
+        Some(
+          key.++(
+            aggCalls.map(agg =>
+              tuples.map(t => agg.getArgument(t)).reduce(aggReduce(_, _, agg))
+            )
+          )
+        )
+      case _ => NilTuple
     }
+  }
 
   /**
     * @inheritdoc
