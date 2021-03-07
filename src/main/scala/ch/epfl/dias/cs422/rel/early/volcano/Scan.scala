@@ -11,14 +11,14 @@ import org.apache.calcite.plan.{RelOptCluster, RelOptTable, RelTraitSet}
   * @see [[ch.epfl.dias.cs422.helpers.rel.early.volcano.Operator]]
   */
 class Scan protected (
-                       cluster: RelOptCluster,
-                       traitSet: RelTraitSet,
-                       table: RelOptTable,
-                       tableToStore: ScannableTable => Store
-                     ) extends skeleton.Scan[
-  ch.epfl.dias.cs422.helpers.rel.early.volcano.Operator
-](cluster, traitSet, table)
-  with ch.epfl.dias.cs422.helpers.rel.early.volcano.Operator {
+    cluster: RelOptCluster,
+    traitSet: RelTraitSet,
+    table: RelOptTable,
+    tableToStore: ScannableTable => Store
+) extends skeleton.Scan[
+      ch.epfl.dias.cs422.helpers.rel.early.volcano.Operator
+    ](cluster, traitSet, table)
+    with ch.epfl.dias.cs422.helpers.rel.early.volcano.Operator {
 
   /**
     * A [[Store]] is an in-memory storage the data.
@@ -30,26 +30,6 @@ class Scan protected (
   protected val scannable: Store = tableToStore(
     table.unwrap(classOf[ScannableTable])
   )
-
-  /**
-    * Helper function (you do not have to use it or implement it)
-    * It's purpose is to show how to convert the [[scannable]] to a
-    * specific [[Store]].
-    *
-    * @param rowId row number (startign from 0)
-    * @return the row as a Tuple
-    */
-  private def getRow(rowId: Int): Tuple = {
-    scannable match {
-      case rowStore: RowStore =>
-        /**
-          * For this project, it's safe to assume scannable will always
-          * be a [[RowStore]].
-          */
-        rowStore.getRow(rowId)
-    }
-  }
-
   protected var index = 0
   protected var count: Long = 0L
 
@@ -71,6 +51,25 @@ class Scan protected (
       val next_tuple = getRow(index)
       index = index + 1
       Some(next_tuple)
+    }
+  }
+
+  /**
+    * Helper function (you do not have to use it or implement it)
+    * It's purpose is to show how to convert the [[scannable]] to a
+    * specific [[Store]].
+    *
+    * @param rowId row number (startign from 0)
+    * @return the row as a Tuple
+    */
+  private def getRow(rowId: Int): Tuple = {
+    scannable match {
+      case rowStore: RowStore =>
+        /**
+          * For this project, it's safe to assume scannable will always
+          * be a [[RowStore]].
+          */
+        rowStore.getRow(rowId)
     }
   }
 

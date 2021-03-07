@@ -21,7 +21,7 @@ class Sort protected (
 
   protected var sortedIterator: Iterator[Tuple] = Iterator()
   private var counter = 0
-  private var sorted = Vector.empty[Tuple]
+  private var sorted = Vector[Tuple]()
 
   /**
     * @inheritdoc

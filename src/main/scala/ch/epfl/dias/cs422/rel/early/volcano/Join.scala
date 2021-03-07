@@ -20,7 +20,7 @@ class Join(
     ](left, right, condition)
     with ch.epfl.dias.cs422.helpers.rel.early.volcano.Operator {
 
-  private var lazyRight = LazyList.empty[(Tuple, Seq[Comparable[Elem]])]
+  private var lazyRight = LazyList.empty[Tuple]
   private var lazyJoined = LazyList.empty[Tuple]
 
   /**
@@ -30,46 +30,44 @@ class Join(
     left.open()
     right.open()
 
-    val keys = getLeftKeys.zip(getRightKeys)
-
     def next(
         it: ch.epfl.dias.cs422.helpers.rel.early.volcano.Operator
-    ): LazyList[(Tuple, Seq[Comparable[Elem]])] =
+    ): LazyList[Tuple] =
       it.next() match {
-        case Some(t) =>
-          (t, getRightKeys.map(t(_).asInstanceOf[Comparable[Elem]])) #:: next(
-            it
-          )
+        case Some(tuple) => tuple #:: next(it)
         case NilTuple =>
           it.close()
           LazyList.empty
       }
 
     lazyRight = next(right)
+    val keys = getLeftKeys.zip(getRightKeys)
 
     def join(
         previousLeft: Tuple,
-        comparableLeft: Seq[Comparable[Elem]],
-        rightIterator: LazyList[(Tuple, Seq[Comparable[Elem]])]
+        rightIterator: LazyList[Tuple]
     ): LazyList[Tuple] =
       rightIterator match {
         case LazyList() =>
           left.next() match {
             case NilTuple => LazyList.empty
-            case Some(l)  => join(l, getLeftKeys.map(l(_).asInstanceOf[Comparable[Elem]]), lazyRight)
+            case Some(l)  => join(l, lazyRight)
           }
-        case (right, comparableRight) #:: tail
-            if comparableLeft.zip(comparableRight).forall {
-              case (l, r) => l.compareTo(r) == 0
+        case right #:: tail if keys.forall {
+              case (leftIndex, rightIndex) =>
+                previousLeft(leftIndex)
+                  .asInstanceOf[Comparable[Elem]]
+                  .compareTo(
+                    right(rightIndex).asInstanceOf[Comparable[Elem]]
+                  ) == 0
             } =>
-          previousLeft.:++(right) #:: join(previousLeft, comparableLeft, tail)
-        case _ #:: tail => join(previousLeft, comparableLeft, tail)
+          previousLeft.:++(right) #:: join(previousLeft, tail)
+        case _ #:: tail => join(previousLeft, tail)
       }
 
     lazyJoined = left.next() match {
       case NilTuple => LazyList.empty
-      case Some(l) =>
-        join(l, getLeftKeys.map(l(_).asInstanceOf[Comparable[Elem]]), lazyRight)
+      case Some(l)  => join(l, lazyRight)
     }
   }
 
