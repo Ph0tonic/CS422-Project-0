@@ -20,8 +20,7 @@ class Aggregate protected (
     ](input, groupSet, aggCalls)
     with ch.epfl.dias.cs422.helpers.rel.early.volcano.Operator {
 
-  protected var aggregated = Array.empty[(Tuple, Vector[Tuple])]
-  protected var aggregatedIterator = Iterator.empty[(Tuple, Vector[Tuple])]
+  protected var aggregatedIterator = Iterator.empty[Tuple]
 
   /**
     * @inheritdoc
@@ -31,14 +30,12 @@ class Aggregate protected (
     var next = input.next()
     if (next == NilTuple && groupSet.isEmpty) {
       // return aggEmptyValue for each aggregate.
-      aggregated = Array(
-        (IndexedSeq.empty[Elem] -> Vector(
-          aggCalls
-            .map(aggEmptyValue)
-            .foldLeft(IndexedSeq.empty[Elem])((a, b) => a :+ b)
-            .asInstanceOf[Tuple]
-        ))
-      )
+      aggregatedIterator = Vector(
+        aggCalls
+          .map(aggEmptyValue)
+          .foldLeft(IndexedSeq.empty[Elem])((a, b) => a :+ b)
+          .asInstanceOf[Tuple]
+      ).iterator
 
     } else {
       // Group based on the key produced by the indices in groupSet
@@ -54,10 +51,15 @@ class Aggregate protected (
         next = input.next()
       }
 
-      aggregated = aggregates.toArray
+      aggregatedIterator = aggregates.toArray.map {
+        case (key, tuples) =>
+          key.++(
+            aggCalls.map(agg =>
+              tuples.map(t => agg.getArgument(t)).reduce(aggReduce(_, _, agg))
+            )
+          )
+      }.iterator
     }
-
-    aggregatedIterator = aggregated.iterator
   }
 
   /**
@@ -65,16 +67,7 @@ class Aggregate protected (
     */
   override def next(): Option[Tuple] = {
     if (aggregatedIterator.hasNext) {
-      aggregatedIterator.next match {
-        case (key, tuples) =>
-          Some(
-            key.++(
-              aggCalls.map(agg =>
-                tuples.map(t => agg.getArgument(t)).reduce(aggReduce(_, _, agg))
-              )
-            )
-          )
-      }
+      Some(aggregatedIterator.next)
     } else {
       NilTuple
     }
