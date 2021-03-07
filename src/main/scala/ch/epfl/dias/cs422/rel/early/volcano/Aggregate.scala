@@ -12,15 +12,16 @@ import org.apache.calcite.util.ImmutableBitSet
   * @see [[ch.epfl.dias.cs422.helpers.rex.AggregateCall]]
   */
 class Aggregate protected (
-                            input: ch.epfl.dias.cs422.helpers.rel.early.volcano.Operator,
-                            groupSet: ImmutableBitSet,
-                            aggCalls: IndexedSeq[AggregateCall]
-                          ) extends skeleton.Aggregate[
-  ch.epfl.dias.cs422.helpers.rel.early.volcano.Operator
-](input, groupSet, aggCalls)
-  with ch.epfl.dias.cs422.helpers.rel.early.volcano.Operator {
+    input: ch.epfl.dias.cs422.helpers.rel.early.volcano.Operator,
+    groupSet: ImmutableBitSet,
+    aggCalls: IndexedSeq[AggregateCall]
+) extends skeleton.Aggregate[
+      ch.epfl.dias.cs422.helpers.rel.early.volcano.Operator
+    ](input, groupSet, aggCalls)
+    with ch.epfl.dias.cs422.helpers.rel.early.volcano.Operator {
 
-  protected var aggregated = List.empty[(Tuple, Vector[Tuple])]
+  protected var aggregated = Array.empty[(Tuple, Vector[Tuple])]
+  protected var aggregatedIterator = Iterator.empty[(Tuple, Vector[Tuple])]
 
   /**
     * @inheritdoc
@@ -30,7 +31,7 @@ class Aggregate protected (
     var next = input.next()
     if (next == NilTuple && groupSet.isEmpty) {
       // return aggEmptyValue for each aggregate.
-      aggregated = List(
+      aggregated = Array(
         (IndexedSeq.empty[Elem] -> Vector(
           aggCalls
             .map(aggEmptyValue)
@@ -53,25 +54,29 @@ class Aggregate protected (
         next = input.next()
       }
 
-      aggregated = aggregates.toList
+      aggregated = aggregates.toArray
     }
+
+    aggregatedIterator = aggregated.iterator
   }
 
   /**
     * @inheritdoc
     */
   override def next(): Option[Tuple] = {
-    aggregated match {
-      case (key, tuples) :: tail =>
-        aggregated = tail
-        Some(
-          key.++(
-            aggCalls.map(agg =>
-              tuples.map(t => agg.getArgument(t)).reduce(aggReduce(_, _, agg))
+    if (aggregatedIterator.hasNext) {
+      aggregatedIterator.next match {
+        case (key, tuples) =>
+          Some(
+            key.++(
+              aggCalls.map(agg =>
+                tuples.map(t => agg.getArgument(t)).reduce(aggReduce(_, _, agg))
+              )
             )
           )
-        )
-      case _ => NilTuple
+      }
+    } else {
+      NilTuple
     }
   }
 

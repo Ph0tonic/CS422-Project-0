@@ -10,18 +10,18 @@ import org.apache.calcite.rel.{RelCollation, RelFieldCollation}
   * @see [[ch.epfl.dias.cs422.helpers.rel.early.volcano.Operator]]
   */
 class Sort protected (
-                       input: ch.epfl.dias.cs422.helpers.rel.early.volcano.Operator,
-                       collation: RelCollation,
-                       offset: Option[Int],
-                       fetch: Option[Int]
-                     ) extends skeleton.Sort[
-  ch.epfl.dias.cs422.helpers.rel.early.volcano.Operator
-](input, collation, offset, fetch)
-  with ch.epfl.dias.cs422.helpers.rel.early.volcano.Operator {
+    input: ch.epfl.dias.cs422.helpers.rel.early.volcano.Operator,
+    collation: RelCollation,
+    offset: Option[Int],
+    fetch: Option[Int]
+) extends skeleton.Sort[
+      ch.epfl.dias.cs422.helpers.rel.early.volcano.Operator
+    ](input, collation, offset, fetch)
+    with ch.epfl.dias.cs422.helpers.rel.early.volcano.Operator {
 
-  private var counter = 0
-  private var sorted = Array.empty[Tuple]
   protected var sortedIterator: Iterator[Tuple] = Iterator()
+  private var counter = 0
+  private var sorted = Vector.empty[Tuple]
 
   /**
     * @inheritdoc
@@ -60,7 +60,7 @@ class Sort protected (
     */
   override def next(): Option[Tuple] =
     if (counter != 0 && sortedIterator.hasNext) {
-      if(counter > 0) {
+      if (counter > 0) {
         counter = counter - 1
       }
       Some(sortedIterator.next())
@@ -73,6 +73,6 @@ class Sort protected (
     */
   override def close(): Unit = {
     input.close()
-    sorted = Array.empty[Tuple]
+    sorted = Vector.empty[Tuple]
   }
 }
