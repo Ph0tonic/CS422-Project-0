@@ -5,6 +5,9 @@ import ch.epfl.dias.cs422.helpers.rel.RelOperator.{Elem, NilTuple, Tuple}
 import ch.epfl.dias.cs422.helpers.rex.AggregateCall
 import org.apache.calcite.util.ImmutableBitSet
 
+import scala.collection.parallel.CollectionConverters._
+import scala.collection.parallel.immutable.{ParMap, ParVector}
+
 /**
   * @inheritdoc
   * @see [[ch.epfl.dias.cs422.helpers.builder.skeleton.Aggregate]]
@@ -20,7 +23,7 @@ class Aggregate protected (
     ](input, groupSet, aggCalls)
     with ch.epfl.dias.cs422.helpers.rel.early.volcano.Operator {
 
-  protected var aggregated = List.empty[(Tuple, Vector[Tuple])]
+  protected var aggregatedIterator = Iterator.empty[Tuple]
 
   /**
     * @inheritdoc
@@ -30,19 +33,17 @@ class Aggregate protected (
     var next = input.next()
     if (next == NilTuple && groupSet.isEmpty) {
       // return aggEmptyValue for each aggregate.
-      aggregated = List(
-        (IndexedSeq.empty[Elem] -> Vector(
-          aggCalls
-            .map(aggEmptyValue)
-            .foldLeft(IndexedSeq.empty[Elem])((a, b) => a :+ b)
-            .asInstanceOf[Tuple]
-        ))
-      )
+      aggregatedIterator = ParVector(
+        aggCalls
+          .map(aggEmptyValue)
+          .foldLeft(IndexedSeq.empty[Elem])((a, b) => a :+ b)
+          .asInstanceOf[Tuple]
+      ).iterator
 
     } else {
       // Group based on the key produced by the indices in groupSet
       val keyIndices = groupSet.toArray
-      var aggregates = Map.empty[Tuple, Vector[Tuple]]
+      var aggregates = ParMap.empty[Tuple, Vector[Tuple]]
       while (next != NilTuple) {
         val tuple: Tuple = next.get
         val key: Tuple = keyIndices.map(i => tuple(i))
@@ -53,7 +54,16 @@ class Aggregate protected (
         next = input.next()
       }
 
-      aggregated = aggregates.toList
+      aggregatedIterator = aggregates.toVector.par.map {
+        case (key, tuples) =>
+          key.++(
+            aggCalls.map(agg =>
+              tuples.par
+                .map(t => agg.getArgument(t))
+                .reduce(aggReduce(_, _, agg))
+            )
+          )
+      }.iterator
     }
   }
 
@@ -61,17 +71,10 @@ class Aggregate protected (
     * @inheritdoc
     */
   override def next(): Option[Tuple] = {
-    aggregated match {
-      case (key, tuples) :: tail =>
-        aggregated = tail
-        Some(
-          key.++(
-            aggCalls.map(agg =>
-              tuples.map(t => agg.getArgument(t)).reduce(aggReduce(_, _, agg))
-            )
-          )
-        )
-      case _ => NilTuple
+    if (aggregatedIterator.hasNext) {
+      Some(aggregatedIterator.next())
+    } else {
+      NilTuple
     }
   }
 

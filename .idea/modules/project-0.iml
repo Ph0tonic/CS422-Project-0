@@ -77,6 +77,7 @@
     <orderEntry type="library" scope="TEST" name="sbt: org.junit.platform:junit-platform-launcher:1.1.1:jar" level="project" />
     <orderEntry type="library" scope="TEST" name="sbt: org.opentest4j:opentest4j:1.1.1:jar" level="project" />
     <orderEntry type="library" name="sbt: org.ow2.asm:asm:5.0.4:jar" level="project" />
+    <orderEntry type="library" name="sbt: org.scala-lang.modules:scala-parallel-collections_2.13:1.0.1:jar" level="project" />
     <orderEntry type="library" name="sbt: org.scala-lang.modules:scala-xml_2.12:1.0.6:jar" level="project" />
     <orderEntry type="library" name="sbt: org.scala-lang:scala-library:2.13.4:jar" level="project" />
     <orderEntry type="library" name="sbt: org.scala-lang:scala-reflect:2.13.4:jar" level="project" />
