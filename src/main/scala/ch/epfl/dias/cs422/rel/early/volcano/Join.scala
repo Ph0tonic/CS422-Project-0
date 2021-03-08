@@ -1,7 +1,7 @@
 package ch.epfl.dias.cs422.rel.early.volcano
 
 import ch.epfl.dias.cs422.helpers.builder.skeleton
-import ch.epfl.dias.cs422.helpers.rel.RelOperator.{Elem, NilTuple, Tuple}
+import ch.epfl.dias.cs422.helpers.rel.RelOperator.{NilTuple, Tuple}
 import org.apache.calcite.rex.RexNode
 
 /**
@@ -20,57 +20,52 @@ class Join(
     ](left, right, condition)
     with ch.epfl.dias.cs422.helpers.rel.early.volcano.Operator {
 
-  private var lazyJoined = LazyList.empty[Tuple]
+  private val leftKeys = getLeftKeys
+  private var it = Iterator.empty[Tuple]
+  private var mapRight = Map.empty[Tuple, Vector[Tuple]]
 
   /**
     * @inheritdoc
     */
   override def open(): Unit = {
-    right.open()
     left.open()
 
-    def next(
-        it: ch.epfl.dias.cs422.helpers.rel.early.volcano.Operator,
-        keys: IndexedSeq[Int]
-    ): LazyList[(Tuple, Seq[Elem])] =
-      it.next() match {
-        case Some(tuple) => (tuple, keys.map(tuple(_))) #:: next(it, keys)
-        case NilTuple =>
-          it.close()
-          LazyList.empty
-      }
+    val rightKeys = getRightKeys
 
-    val lazyLeft = next(left, getLeftKeys)
-    val lazyRight = next(right, getRightKeys)
-
-    lazyJoined = for {
-      (l, lCompare) <- lazyLeft
-      (r, rCompare) <- lazyRight
-      if lCompare.zip(rCompare).forall {
-        case (c1, c2) =>
-          c1.asInstanceOf[Comparable[Elem]]
-            .compareTo(c2) == 0
-      }
-    } yield l.:++(r)
+    mapRight = right.foldLeft(Map.empty[Tuple, Vector[Tuple]])((acc, t) => {
+      val key = rightKeys.map(t(_))
+      val tuples = acc.getOrElse(key, Vector.empty[Tuple])
+      acc + (key -> (tuples :+ t))
+    })
   }
 
   /**
     * @inheritdoc
     */
   override def next(): Option[Tuple] = {
-    lazyJoined match {
-      case LazyList() => NilTuple
-      case tuple #:: tail =>
-        lazyJoined = tail
-        Some(tuple)
+    if (it.hasNext) {
+      Some(it.next())
+    } else {
+      left.next() match {
+        case NilTuple => NilTuple
+        case Some(t) =>
+          it = iterate(t)
+          next()
+      }
     }
   }
 
   /**
     * @inheritdoc
     */
-  override def close(): Unit = {
-    right.close()
-    left.open()
+  override def close(): Unit = left.close()
+
+  private def iterate(l: Tuple): Iterator[Tuple] = {
+    mapRight.get(leftKeys.map(l(_))) match {
+      case Some(tuples) =>
+        (for (e <- tuples)
+          yield (l :++ e.asInstanceOf[Tuple])).iterator
+      case _ => Iterator.empty
+    }
   }
 }
