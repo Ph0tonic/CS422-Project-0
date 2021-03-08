@@ -26,8 +26,8 @@ class Join(
     * @inheritdoc
     */
   override def open(): Unit = {
-    left.open()
     right.open()
+    left.open()
 
     def next(
         it: ch.epfl.dias.cs422.helpers.rel.early.volcano.Operator,
@@ -70,7 +70,7 @@ class Join(
     * @inheritdoc
     */
   override def close(): Unit = {
-    left.close()
     right.close()
+    left.open()
   }
 }
