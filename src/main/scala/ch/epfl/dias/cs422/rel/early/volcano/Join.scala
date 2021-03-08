@@ -20,7 +20,6 @@ class Join(
     ](left, right, condition)
     with ch.epfl.dias.cs422.helpers.rel.early.volcano.Operator {
 
-  private var lazyRight = LazyList.empty[Tuple]
   private var lazyJoined = LazyList.empty[Tuple]
 
   /**
@@ -31,44 +30,28 @@ class Join(
     right.open()
 
     def next(
-        it: ch.epfl.dias.cs422.helpers.rel.early.volcano.Operator
-    ): LazyList[Tuple] =
+        it: ch.epfl.dias.cs422.helpers.rel.early.volcano.Operator,
+        keys: IndexedSeq[Int]
+    ): LazyList[(Tuple, Seq[Elem])] =
       it.next() match {
-        case Some(tuple) => tuple #:: next(it)
+        case Some(tuple) => (tuple, keys.map(tuple(_))) #:: next(it, keys)
         case NilTuple =>
           it.close()
           LazyList.empty
       }
 
-    lazyRight = next(right)
-    val keys = getLeftKeys.zip(getRightKeys)
+    val lazyLeft = next(left, getLeftKeys)
+    val lazyRight = next(right, getRightKeys)
 
-    def join(
-        previousLeft: Tuple,
-        rightIterator: LazyList[Tuple]
-    ): LazyList[Tuple] =
-      rightIterator match {
-        case LazyList() =>
-          left.next() match {
-            case NilTuple => LazyList.empty
-            case Some(l)  => join(l, lazyRight)
-          }
-        case right #:: tail if keys.forall {
-              case (leftIndex, rightIndex) =>
-                previousLeft(leftIndex)
-                  .asInstanceOf[Comparable[Elem]]
-                  .compareTo(
-                    right(rightIndex).asInstanceOf[Comparable[Elem]]
-                  ) == 0
-            } =>
-          previousLeft.:++(right) #:: join(previousLeft, tail)
-        case _ #:: tail => join(previousLeft, tail)
+    lazyJoined = for {
+      (l, lCompare) <- lazyLeft
+      (r, rCompare) <- lazyRight
+      if lCompare.zip(rCompare).forall {
+        case (c1, c2) =>
+          c1.asInstanceOf[Comparable[Elem]]
+            .compareTo(c2) == 0
       }
-
-    lazyJoined = left.next() match {
-      case NilTuple => LazyList.empty
-      case Some(l)  => join(l, lazyRight)
-    }
+    } yield l.:++(r)
   }
 
   /**
